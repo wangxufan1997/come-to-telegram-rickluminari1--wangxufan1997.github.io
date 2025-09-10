@@ -1,0 +1,36 @@
+name: Deploy Website
+
+on:
+  push:
+    branches:
+      - main   # main 分支提交时触发
+
+jobs:
+  deploy:
+    runs-on: self-hosted   # 使用你在云服务器上的 Runner
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 如果是纯静态网站，可以直接用；如果需要构建（Vue/React/Node），加 build 步骤
+      - name: Build project
+        run: |
+          if [ -f package.json ]; then
+            npm install
+            npm run build
+          fi
+
+      - name: Deploy to Nginx folder
+        run: |
+          sudo rm -rf /home/ecs-assist-user/project/html/*
+          # 如果有 build 输出目录，比如 dist/build，请改成对应的
+          if [ -d dist ]; then
+            sudo cp -r dist/* /home/ecs-assist-user/project/html/
+          else
+            sudo cp -r * /home/ecs-assist-user/project/html/
+          fi
+
+      - name: Reload Nginx
+        run: |
+          sudo systemctl reload nginx
